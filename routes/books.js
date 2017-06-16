@@ -14,7 +14,7 @@ router.get('/', function (req, res, next) {
   jsreport.init().then(function () {
     jsreport.documentStore.collection('xlsxTemplates')
       .insert({
-        // put here the raw content (base64 string) of the xlsx template file, 
+        // put here the raw content (base64 string) of the xlsx template file,
         contentRaw: fs.readFileSync(path.resolve('./template.xlsx')).toString('base64'), // this is just an example assuming that the xlsx template is in your directory, you can also use some data that you have sent from other server
         name: 'hello' // name of the new xlsx template file
       }).then(function (doc) {
@@ -22,7 +22,20 @@ router.get('/', function (req, res, next) {
 
         return jsreport.render({
           template: {
-            content: fs.readFileSync(path.resolve('./template.xlsx')).toString(),
+            content: `
+              {{xlsxRemove "xl/worksheets/sheet1.xml" "worksheet.sheetData[0].row" 1}}
+              {{#each people}}
+              {{#xlsxAdd "xl/worksheets/sheet1.xml" "worksheet.sheetData[0].row"}}
+              <row>
+                <c t="inlineStr" s="{{@root.$removedItem.c.[0].$.s}}"><is><t>{{name}}</t></is></c>
+                <c t="inlineStr" s="{{@root.$removedItem.c.[1].$.s}}"><is><t>{{gender}}</t></is></c>
+                <c s="{{@root.$removedItem.c.[2].$.s}}"><v>{{age}}</v></c>
+              </row>
+              {{/xlsxAdd}}
+              {{/each}}
+
+              {{{xlsxPrint}}}
+            `,
             xlsxTemplate: {
               shortid: doc.shortid
             },
@@ -44,7 +57,7 @@ router.get('/', function (req, res, next) {
             preview: true
           }
         }).then(function (resp) {
-          //prints pdf with headline Hello world 
+          //prints pdf with headline Hello world
           resp.stream.pipe(res);
         });
 
